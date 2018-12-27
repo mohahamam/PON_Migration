@@ -1,0 +1,2 @@
+configure equipment ont interface ONTtoBeRetrived admin-state down
+configure equipment ont no interface ONTtoBeRetrived

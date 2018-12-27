@@ -1,0 +1,38 @@
+environment inhibit-alarms
+info configure equipment ont interface ONTtoBeRetrived flat
+info configure qos interface ont:ONTtoBeRetrived flat 
+info configure equipment ont slot ONTtoBeRetrived/1 flat
+info configure equipment ont slot ONTtoBeRetrived/2 flat
+info configure equipment ont slot ONTtoBeRetrived/5 flat
+info configure equipment ont slot ONTtoBeRetrived/14 flat
+info configure ethernet ont ONTtoBeRetrived/1/[1...8] flat
+info configure qos interface ONTtoBeRetrived/1/[1...8] flat | match exact:upstream-queue | match exact:"bandwidth-profile name"
+info configure qos interface ONTtoBeRetrived/vuni flat | match exact:upstream-queue | match exact:"bandwidth-profile name"
+info configure interface port uni:ONTtoBeRetrived/1/[1...8] flat
+info configure pppox-relay cross-connect client-port flat | match exact:"vlan-port:ONTtoBeRetrived"
+info configure bridge port ONTtoBeRetrived/1/1 flat
+info configure bridge port ONTtoBeRetrived/1/2 flat
+info configure bridge port ONTtoBeRetrived/1/3 flat
+info configure bridge port ONTtoBeRetrived/1/4 flat
+info configure bridge port ONTtoBeRetrived/1/5 flat
+info configure bridge port ONTtoBeRetrived/1/6 flat
+info configure bridge port ONTtoBeRetrived/1/7 flat
+info configure bridge port ONTtoBeRetrived/1/8 flat
+info configure bridge port ONTtoBeRetrived/vuni flat
+info configure igmp channel vlan:ONTtoBeRetrived/1/1:40 flat
+info configure igmp channel vlan:ONTtoBeRetrived/1/2:40 flat
+info configure igmp channel vlan:ONTtoBeRetrived/1/3:40 flat
+info configure igmp channel vlan:ONTtoBeRetrived/1/4:40 flat
+info configure igmp channel vlan:ONTtoBeRetrived/1/5:40 flat
+info configure igmp channel vlan:ONTtoBeRetrived/1/6:40 flat
+info configure igmp channel vlan:ONTtoBeRetrived/1/7:40 flat
+info configure igmp channel vlan:ONTtoBeRetrived/1/8:40 flat
+info configure voice ont service ONTtoBeRetrived/1 flat
+info configure voice ont pots ONTtoBeRetrived/2/[1...8] flat | match exact:termination-id
+info configure ces ont line ONTtoBeRetrived/5/[1...8] flat
+info configure ces ont service ONTtoBeRetrived/5/[1...8] flat
+info configure iphost ont ont:ONTtoBeRetrived/1 flat
+info configure voice ont voip-config ont:ONTtoBeRetrived/1 flat
+info configure voice ont sip-config ont:ONTtoBeRetrived/1 flat
+info configure voice ont voice-sip-port ONTtoBeRetrived/2/[1...8] flat | match exact:user-name
+info configure voice ont voice-port ONTtoBeRetrived/2/[1...8] flat | match exact:"voipconfig sip"
