@@ -5,18 +5,25 @@ from inputfromuser import canweproceed
 from CleanNetmico import strip_ansi_escape_codes
 from extract_pass import get_pass
 from sub_pass import origConfigwithPass
+from orig_cx_bp_delete import  delete_corss_connect_bridge_ports
 
 # Handling the inputs to the file:
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='''
-	This Script will run commands form commands file "-C commands_file "
-	and will run them on the NE you specify in the -H host name
-	You need to provide username with option "-U username"
-	Yeu need to provide password with option "-P password"
-	It is possible to chose if you wish to see the commands running in the shell by chosing -V Yes''' )
+	This Script will retrive configuration from OLT the NE you specify in the -H host name
+	-O you provide a file name which contains a list of ONTs, -NEWPON is the target PON which you wish those ONTs to shift to
+	For priviliges have to give username with option "-U username"
+	For password with option "-P password
+	-SIP is a file which cotains the output of the TL1 command RTRV-ONTVOICEPORTSIP::all; for that OLT
+	This will fill in the SIP passwords in the respective SIP lines
+	To see running in the shell chose -V Yes
+	Sample of how command work:
+	python shift_ONTs.py -H 10.33.72.14 -O UAE_LAB_ONTs_list.txt -NEWPON 1/1/3/9 -V Yes -U isadmin -P ANS#150 -SIP TL1Commands_SIP_Pass.txt 
+	
+	''' )
 	parser.add_argument("-H", help="Mandatory Provide the Host IP address")
-	parser.add_argument("-O", help="Mandatory Input the List of ONTs you wish to Shift to a new PON")
-	parser.add_argument("-newpon", help="Mandatory Provide the New pon you wish to shift the ONTs to for example 1/1/10/12")
+	parser.add_argument("-O", help="Mandatory Input the file name which has a list of original ONTs")
+	parser.add_argument("-NEWPON", help="Mandatory Provide the New pon you wish to shift the ONTs to for example 1/1/10/12")
 	parser.add_argument("-V", help="Do you want to see the commands being running ? select Yes ?")
 	parser.add_argument("-U", help="Mandatory Username of the NE")
 	parser.add_argument("-P", help="Mandatory Password of the NE")
@@ -25,7 +32,7 @@ if __name__ == "__main__":
 args = parser.parse_args()
 hostname=(args.H)
 ONTsfilename=(args.O)
-ToPon=(args.newpon)
+ToPon=(args.NEWPON)
 Verbose=(args.V)
 Username=(args.U)
 Password=(args.P)
@@ -105,13 +112,16 @@ else:
 if re.search(PONrule,ToPon):
 	pass
 else:
-	print(('\n\n')+('X!'*79),'\nMistake in the Target PON address\nYou Should give the correct Target PON address such as: -newpon 1/1/10/12')
+	print(('\n\n')+('X!'*79),'\nMistake in the Target PON address\nYou Should give the correct Target PON address such as: -NEWPON 1/1/10/12')
 	exit()
 
 	
 ###Create a file that contains the info configure of the list of ONTs.
 	
 infoconfigONTsfilename = ('info_config_PON_'+hostname+'_'+FromPon.replace('/','-') +'_at_'+ arrow.now().format('YYYY-MM-DD-HH-mm-ss')+'.txt')
+cross_connect_vlans = ('Coss_Connect_Vlans'+hostname+'_at_'+ arrow.now().format('YYYY-MM-DD-HH-mm-ss')+'.txt')
+crossconnectvlanslist = ('vlanslist'+hostname+'_at_'+ arrow.now().format('YYYY-MM-DD-HH-mm-ss')+'.txt')
+
 ONTToMove = 'ONTtoBeRetrived'
 ONTMasterFile = 'modules/ONT_Master_Config.txt'
 numberOfLines=0
@@ -154,7 +164,7 @@ with open (ONTsfilename,'r') as ontslist:
 			
 			
 print('\n\nA file created with info configure of above ONTs named:',infoconfigONTsfilename,'under the directory '+outdir)
-print('\n\n Also A file created with commands to delete the above ONTs named:',deleteOldONTs,'under the directory '+outdir)
+print('\nAlso A file created with commands to delete the above ONTs named:',deleteOldONTs,'under the directory '+outdir)
 time.sleep(1)
 print('~'*79)
 print('Total Number of ONTs =',numberOfLines)
@@ -172,6 +182,9 @@ canweproceed()
 
 
 ##############################Running the commands on the OLT #################################
+def find_between(s, start, end):
+	  return (s.split(start))[1].split(end)[0]	
+
 
 OuTpUt01 = ('SessionLog_'+hostname+'_'+FromPon.replace('/','-') +'_at_'+ arrow.now().format('YYYY-MM-DD-HH-mm-ss')+'.txt')
 os.system('cls' if os.name == 'nt' else 'clear')
@@ -191,6 +204,17 @@ try:
 			print(strip_ansi_escape_codes(commandsout.rstrip('\n')))
 		commandsin.writelines(strip_ansi_escape_codes(commandsout.rstrip('\n')))
 	
+	with open (os.path.join(logsdir,cross_connect_vlans),'w+') as a:
+		crossconnect_output = connection.send_command('info configure vlan id flat | match exact:" mode cross-connect "')
+		if Verbose =='Yes':
+			print(strip_ansi_escape_codes(crossconnect_output.rstrip('\n')))
+		a.write(strip_ansi_escape_codes(crossconnect_output))
+#
+	with open (os.path.join(logsdir,cross_connect_vlans),'r') as a:
+		list_of_vlans=sorted({find_between(line, 'configure vlan id ', ' mode ') for line in a if 'cross-connect' in line })
+	#print (list_of_vlans)
+		
+		
 					
 	connection.disconnect()
 
@@ -249,10 +273,10 @@ print('You can find it under the directory '+outdir.rstrip('/')+'\n')
 
 
 ####A function to Modify the OLD PON configuraiton to the New PON configuration.
+outputfilename = ('Target_PON'+'_'+hostname+'_'+ ToPon.replace('/','-') +'_'+ arrow.now().format('YYYY-MM-DD-HH-mm-ss')+'.txt')
+corssconnectdeletefile= ('DeleteCX_BP'+'_'+hostname+'_'+ ToPon.replace('/','-') +'_'+ arrow.now().format('YYYY-MM-DD-HH-mm-ss')+'.txt')
 
-def Shifting(OldPon,NewPon,ONTConfig):
-	global outputfilename
-	outputfilename = ('Target_PON'+'_'+hostname+'_'+ NewPon.replace('/','-') +'_'+ arrow.now().format('YYYY-MM-DD-HH-mm-ss')+'.txt')
+def Shifting(OldPon,NewPon,ONTConfig,TargetPON):
 
 	with open (ONTConfig,'r') as config:
 		filedata = config.read()
@@ -260,11 +284,19 @@ def Shifting(OldPon,NewPon,ONTConfig):
 	filedata = filedata.replace(':'+OldPon,':'+NewPon)
 
 
-	with open (os.path.join(outdir,outputfilename),'a') as outputfile:
+	with open (TargetPON,'a') as outputfile:
 		outputfile.write(filedata)
 
-
-Shifting(FromPon,ToPon,os.path.join(outdir,'WithPass'+origONTsConfig))
+Shifting(FromPon, ToPon, os.path.join(outdir,'WithPass'+origONTsConfig), os.path.join(outdir,outputfilename))
+delete_corss_connect_bridge_ports(os.path.join(outdir,'WithPass'+origONTsConfig),os.path.join(logsdir,corssconnectdeletefile),list_of_vlans)
+### append the output of the delete cross-connect bridge ports to the Target PON file so that you have the commands ready to delete those bridge prots before running the new PON onts creation.
+def line_prepender(filename, line):
+	with open(filename, 'r+') as f:
+		content = f.read()
+		f.seek(0, 0)
+		f.write(line.rstrip('\r\n') + '\n' + content)
+with open (os.path.join(logsdir,corssconnectdeletefile),'r') as f:
+	line_prepender(os.path.join(outdir,outputfilename), ('#'+'~'*79 + '\n#The below section has commands that are going to delete the crossconnect services!!!.\n#Issue these commands only if you are sure that migration is starting now. !!!!\n'+'#'+'~'*79+'\n'+f.read()+'#'+'~'*79+'\n#Below Section is the configuration of the ONTs under the new PON'+'\n'+'#'+'~'*79))
 
 print('Sucess!!!!!!! \nThe output file has been created\n' + outputfilename)
 print('You can find it under the directory '+outdir.rstrip('/')+'\n')
