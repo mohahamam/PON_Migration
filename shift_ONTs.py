@@ -194,7 +194,7 @@ netmiko_exceptions = (netmiko.ssh_exception.NetMikoTimeoutException,
 try:
 	print('~'*79)
 	print('connecting to the device',hostname)
-	connection = netmiko.ConnectHandler(ip=hostname,device_type='alcatel_sros',username=Username,password=Password)
+	connection = netmiko.ConnectHandler(ip=hostname,device_type='alcatel_sros',username=Username,password=Password,session_timeout=7200,timeout=7200)
 	print('connection to ',hostname,'is successful',type(connection))
 	with open (os.path.join(logsdir,OuTpUt01), 'w') as commandsin:
 		commandsin.writelines('~'*79+('\n'))
