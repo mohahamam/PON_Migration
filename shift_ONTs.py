@@ -199,7 +199,7 @@ try:
 	with open (os.path.join(logsdir,OuTpUt01), 'w') as commandsin:
 		commandsin.writelines('~'*79+('\n'))
 		commandsin.writelines('#'*3+'Connecting to the Device IP ='+hostname+'#'*3+('\n'))
-		commandsout =connection.send_config_from_file(config_file=os.path.join(outdir,infoconfigONTsfilename))
+		commandsout =connection.send_config_from_file(config_file=os.path.join(outdir,infoconfigONTsfilename),delay_factor=10)
 		if Verbose =='Yes':
 			print(strip_ansi_escape_codes(commandsout.rstrip('\n')))
 		commandsin.writelines(strip_ansi_escape_codes(commandsout.rstrip('\n')))
